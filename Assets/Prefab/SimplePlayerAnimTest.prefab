@@ -631,7 +631,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  speed: 0
+  PlayerID:
+    m_InternalValue: 0
+  PlayerID2: 0
+  speed: 5
   groundLayer:
     serializedVersion: 2
     m_Bits: 64

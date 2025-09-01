@@ -6,6 +6,10 @@ public class GameManager : NetworkBehaviour
 
 
     [SerializeField] private Transform player;
+    [SerializeField] private GameObject buffP;
+
+    public float spawnCount = 4f;
+    public float currentCount = 0;
 
     void Awake()
     {
@@ -23,17 +27,33 @@ public class GameManager : NetworkBehaviour
     {
         
     }
+    private void Update()
+    {
+        if (IsServer && NetworkManager.Singleton.ConnectedClients.Count >= 2)
+        {
+            currentCount += Time.deltaTime;
+            if (currentCount > spawnCount)
+            {
+                Vector3 random = new Vector3(Random.Range(-8, 8), 0.5f, (Random.Range(-8, 8)));
+                GameObject buff = Instantiate(buffP);
+                buff.GetComponent<NetworkObject>().Spawn(true);
+                currentCount = 0;
+            }
+        }
 
+    }
     public override void OnNetworkSpawn()
     {
         print("Current pLAYER" + NetworkManager.Singleton.ConnectedClients.Count);
         print(NetworkManager.Singleton.LocalClientId);
         InstancePlayerRpc(NetworkManager.Singleton.LocalClientId);
     }
+
     [Rpc(SendTo.Server)]
     public void InstancePlayerRpc(ulong ownerID)
     {
         Transform playerP = Instantiate(player);
+        playerP.GetComponent<SimplePlayerController>().PlayerID.Value = ownerID;
         playerP.GetComponent<NetworkObject>().SpawnWithOwnership(ownerID, true);
     }
 

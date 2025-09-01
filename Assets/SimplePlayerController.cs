@@ -3,6 +3,11 @@ using Unity.Netcode;
 
 public class SimplePlayerController : NetworkBehaviour
 {
+    public NetworkVariable<ulong> PlayerID;
+
+    public ulong PlayerID2;
+
+
     public float speed;
     private Animator animator;
     private Rigidbody rb;
