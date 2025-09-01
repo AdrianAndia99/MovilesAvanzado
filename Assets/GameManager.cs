@@ -26,6 +26,7 @@ public class GameManager : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
+        print("Current pLAYER" + NetworkManager.Singleton.ConnectedClients.Count);
         print(NetworkManager.Singleton.LocalClientId);
         InstancePlayerRpc(NetworkManager.Singleton.LocalClientId);
     }
@@ -34,11 +35,6 @@ public class GameManager : NetworkBehaviour
     {
         Transform playerP = Instantiate(player);
         playerP.GetComponent<NetworkObject>().SpawnWithOwnership(ownerID, true);
-    }
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 
     public static GameManager instance_ => Instance;
