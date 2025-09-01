@@ -7,9 +7,13 @@ public class GameManager : NetworkBehaviour
 
     [SerializeField] private Transform player;
     [SerializeField] private GameObject buffP;
+    [SerializeField] private GameObject enemyPrefab;
 
     public float spawnCount = 4f;
     public float currentCount = 0;
+    public float enemySpawnInterval = 6f;
+
+    private float enemySpawnTimer = 0f;
 
     void Awake()
     {
@@ -41,6 +45,18 @@ public class GameManager : NetworkBehaviour
             }
         }
 
+        // Spawner de enemigos
+        if (IsServer && NetworkManager.Singleton.ConnectedClients.Count >= 2)
+        {
+            enemySpawnTimer += Time.deltaTime;
+            if (enemySpawnTimer > enemySpawnInterval)
+            {
+                Vector3 random = new Vector3(Random.Range(-8, 8), 0.5f, Random.Range(-8, 8));
+                GameObject enemy = Instantiate(enemyPrefab, random, Quaternion.identity);
+                enemy.GetComponent<NetworkObject>().Spawn(true);
+                enemySpawnTimer = 0;
+            }
+        }
     }
     public override void OnNetworkSpawn()
     {
