@@ -6,6 +6,20 @@ public class EnemyAI : NetworkBehaviour
     public float speed = 3f;
     private Rigidbody rb;
 
+    public int maxHealth = 100;
+    private NetworkVariable<int> health = new NetworkVariable<int>(
+        readPerm: NetworkVariableReadPermission.Everyone, 
+        writePerm: NetworkVariableWritePermission.Server
+    );
+
+    public override void OnNetworkSpawn()
+    {
+        if (IsServer)
+        {
+            health.Value = maxHealth;
+        }
+    }
+
     void Start()
     {
         rb = GetComponent<Rigidbody>();
@@ -34,6 +48,17 @@ public class EnemyAI : NetworkBehaviour
         {
             Vector3 dir = (closest.transform.position - transform.position).normalized;
             rb.MovePosition(rb.position + dir * speed * Time.fixedDeltaTime);
+        }
+    }
+
+    public void TakeDamage(int damage)
+    {
+        if (!IsServer) return;
+
+        health.Value -= damage;
+        if (health.Value <= 0)
+        {
+            GetComponent<NetworkObject>().Despawn(true);
         }
     }
 

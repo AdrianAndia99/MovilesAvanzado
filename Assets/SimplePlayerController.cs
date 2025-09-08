@@ -16,28 +16,52 @@ public class SimplePlayerController : NetworkBehaviour
     public float jumpForce = 5f;
 
     public Transform firepoint;
+    public float aimLength = 10f;
+    private LineRenderer lineRenderer;
 
-    // private InputSystem_Actions inputActions;
+    public float turnSpeed = 15f; // Velocidad de rotación hacia el mouse
+    private Camera mainCamera;
+
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         animator = GetComponent<Animator>();
-    }
-    void OnEnable()
-    {
-    // inputActions.Enable();
-    // inputActions.Player.Attack.performed += OnAttack;
-    }
-    void OnDisable()
-    {
-    // inputActions.Disable();
-    // inputActions.Player.Attack.performed -= OnAttack;
-    }
+        mainCamera = Camera.main; // Guardar referencia a la cámara principal
 
+        lineRenderer = GetComponent<LineRenderer>();
+        if (lineRenderer == null)
+        {
+            lineRenderer = gameObject.AddComponent<LineRenderer>();
+        }
+        
+        // Esta configuración es mejor hacerla en el editor, como se mencionó antes.
+        lineRenderer.startWidth = 0.05f;
+        lineRenderer.endWidth = 0.05f;
+        lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
+        lineRenderer.startColor = Color.red;
+        lineRenderer.endColor = Color.red;
+        lineRenderer.positionCount = 2;
+        lineRenderer.enabled = false;
+    }
 
     void Update()
     {
-        if (!IsOwner) return;
+        if (!IsOwner)
+        {
+            if(lineRenderer.enabled)
+            {
+                lineRenderer.enabled = false;
+            }
+            return;
+        }
+
+        // Lógica de apuntado con el mouse
+        AimTowardsMouse();
+
+        if (!lineRenderer.enabled)
+        {
+            lineRenderer.enabled = true;
+        }
 
         float x = Input.GetAxisRaw("Horizontal") * speed * Time.deltaTime;
         float y = Input.GetAxisRaw("Vertical") * speed * Time.deltaTime;
@@ -53,17 +77,37 @@ public class SimplePlayerController : NetworkBehaviour
             AnimatorSetTriggerRpc("Jump");
         }
 
-        // Disparar con la tecla F
-        if (Input.GetKeyDown(KeyCode.F))
+        // Cambiado a botón izquierdo del mouse para disparar
+        if (Input.GetMouseButtonDown(0)) // 0 es el botón izquierdo del mouse
         {
-            shootRpc();
+            shootRpc(firepoint.forward);
+        }
+
+        if (firepoint != null)
+        {
+            lineRenderer.SetPosition(0, firepoint.position);
+            lineRenderer.SetPosition(1, firepoint.position + firepoint.forward * aimLength);
         }
     }
+
+    private void AimTowardsMouse()
+    {
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        if (Physics.Raycast(ray, out RaycastHit hitInfo, maxDistance: 300f, layerMask: groundLayer))
+        {
+            var target = hitInfo.point;
+            target.y = transform.position.y; // Mantiene al jugador derecho, sin inclinarse
+            
+            Vector3 direction = target - transform.position;
+            Quaternion rotation = Quaternion.LookRotation(direction);
+            transform.rotation = Quaternion.Slerp(transform.rotation, rotation, turnSpeed * Time.deltaTime);
+        }
+    }
+
     bool IsGrounded()
     {
         return Physics.Raycast(transform.position, Vector3.down, 1.1f, groundLayer);
     }
-
 
     [Rpc(SendTo.Server)]
     public void AnimatorSetTriggerRpc(string animationName)
@@ -96,22 +140,15 @@ public class SimplePlayerController : NetworkBehaviour
         {
             animator.SetBool("Grounded", false);
             animator.SetBool("FreeFall", true);
-
         }
     }
 
-    public void OnAttack(InputAction.CallbackContext context)
-    {
-    // shootRpc(); // Eliminado, ya no se usa el New Input System
-    }
-
     [Rpc(SendTo.Server)]
-
-    public void shootRpc()
+    public void shootRpc(Vector3 direction)
     {
-        GameObject proj = Instantiate(projectilPrefab, firepoint.position, Quaternion.identity);
+        GameObject proj = Instantiate(projectilPrefab, firepoint.position, Quaternion.LookRotation(direction));
         proj.GetComponent<NetworkObject>().Spawn(true);
 
-        proj.GetComponent<Rigidbody>().AddForce(Vector3.forward * 5, ForceMode.Impulse);
+        proj.GetComponent<Rigidbody>().AddForce(direction * 5, ForceMode.Impulse);
     }
 }

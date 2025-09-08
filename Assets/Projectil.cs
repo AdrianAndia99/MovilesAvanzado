@@ -3,7 +3,8 @@ using UnityEngine;
 
 public class Projectil : NetworkBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    public int damage = 34;
+
     void Start()
     {
         if (IsServer)
@@ -12,14 +13,34 @@ public class Projectil : NetworkBehaviour
         }
     }
 
-
     public void SimpleDespawn()
     {
-        GetComponent<NetworkObject>().Despawn(true);
+        if (IsSpawned)
+        {
+            GetComponent<NetworkObject>().Despawn(true);
+        }
     }
 
-    public void OnCollisionEnter(Collision collision)
+    private void OnTriggerEnter(Collider other)
     {
-        
+        if (!IsServer) return;
+
+        // Evita que la bala se destruya al chocar con el jugador que la disparó
+        if (other.CompareTag("Player"))
+        {
+            return;
+        }
+
+        if (other.CompareTag("Enemy"))
+        {
+            EnemyAI enemy = other.GetComponent<EnemyAI>();
+            if (enemy != null)
+            {
+                enemy.TakeDamage(damage);
+            }
+        }
+
+        // Se destruye al chocar con cualquier otra cosa (que no sea el jugador)
+        SimpleDespawn();
     }
 }
