@@ -1,5 +1,6 @@
 using UnityEngine;
 using Unity.Netcode;
+using UnityEngine.InputSystem;
 
 public class SimplePlayerController : NetworkBehaviour
 {
@@ -7,17 +8,32 @@ public class SimplePlayerController : NetworkBehaviour
 
     public ulong PlayerID2;
 
-
+    public GameObject projectilPrefab;
     public float speed;
     private Animator animator;
     private Rigidbody rb;
     public LayerMask groundLayer;
     public float jumpForce = 5f;
+
+    public Transform firepoint;
+
+    // private InputSystem_Actions inputActions;
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         animator = GetComponent<Animator>();
     }
+    void OnEnable()
+    {
+    // inputActions.Enable();
+    // inputActions.Player.Attack.performed += OnAttack;
+    }
+    void OnDisable()
+    {
+    // inputActions.Disable();
+    // inputActions.Player.Attack.performed -= OnAttack;
+    }
+
 
     void Update()
     {
@@ -35,6 +51,12 @@ public class SimplePlayerController : NetworkBehaviour
         if (Input.GetKeyDown(KeyCode.Space) && IsGrounded())
         {
             AnimatorSetTriggerRpc("Jump");
+        }
+
+        // Disparar con la tecla F
+        if (Input.GetKeyDown(KeyCode.F))
+        {
+            shootRpc();
         }
     }
     bool IsGrounded()
@@ -76,5 +98,20 @@ public class SimplePlayerController : NetworkBehaviour
             animator.SetBool("FreeFall", true);
 
         }
+    }
+
+    public void OnAttack(InputAction.CallbackContext context)
+    {
+    // shootRpc(); // Eliminado, ya no se usa el New Input System
+    }
+
+    [Rpc(SendTo.Server)]
+
+    public void shootRpc()
+    {
+        GameObject proj = Instantiate(projectilPrefab, firepoint.position, Quaternion.identity);
+        proj.GetComponent<NetworkObject>().Spawn(true);
+
+        proj.GetComponent<Rigidbody>().AddForce(Vector3.forward * 5, ForceMode.Impulse);
     }
 }
