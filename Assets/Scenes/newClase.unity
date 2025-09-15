@@ -1832,7 +1832,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  playerPrefab: {fileID: 4826500289331276330, guid: c8039180086d1974cbc39c116a8335c8, type: 3}
+  playerPrefab: {fileID: 2076614573960409832, guid: 76c6ec737901f4d4a892d70a7517ad2d, type: 3}
+  buffPrefab: {fileID: 6150952227160891624, guid: 82189c44940788542bbee2da6f5aae26, type: 3}
+  enemyPrefab: {fileID: 5743587751689080398, guid: 35234849678c8494a945138d4fca5507, type: 3}
+  buffSpawnInterval: 10
+  enemySpawnInterval: 6
+  spawnArea: {x: 15, y: 15}
 --- !u!1 &2028771884
 GameObject:
   m_ObjectHideFlags: 0

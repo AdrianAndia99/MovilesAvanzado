@@ -1,12 +1,16 @@
 using UnityEngine;
 using Unity.Netcode;
+using Unity.Collections;
 using UnityEngine.InputSystem;
 
 public class SimplePlayerController : NetworkBehaviour
 {
     public NetworkVariable<ulong> PlayerID;
-
     public ulong PlayerID2;
+
+    public NetworkVariable<FixedString32Bytes> accountID = new();
+    public NetworkVariable<int> health = new();
+    public NetworkVariable<int> attack = new();
 
     public GameObject projectilPrefab;
     public float speed;
@@ -19,14 +23,17 @@ public class SimplePlayerController : NetworkBehaviour
     public float aimLength = 10f;
     private LineRenderer lineRenderer;
 
-    public float turnSpeed = 15f; // Velocidad de rotación hacia el mouse
+    public float turnSpeed = 15f;
     private Camera mainCamera;
+
+    // Variables para el sistema de vida
+    public int maxHealth = 100;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         animator = GetComponent<Animator>();
-        mainCamera = Camera.main; // Guardar referencia a la cámara principal
+        mainCamera = Camera.main;
 
         lineRenderer = GetComponent<LineRenderer>();
         if (lineRenderer == null)
@@ -34,7 +41,6 @@ public class SimplePlayerController : NetworkBehaviour
             lineRenderer = gameObject.AddComponent<LineRenderer>();
         }
         
-        // Esta configuración es mejor hacerla en el editor, como se mencionó antes.
         lineRenderer.startWidth = 0.05f;
         lineRenderer.endWidth = 0.05f;
         lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
@@ -55,7 +61,6 @@ public class SimplePlayerController : NetworkBehaviour
             return;
         }
 
-        // Lógica de apuntado con el mouse
         AimTowardsMouse();
 
         if (!lineRenderer.enabled)
@@ -77,8 +82,7 @@ public class SimplePlayerController : NetworkBehaviour
             AnimatorSetTriggerRpc("Jump");
         }
 
-        // Cambiado a botón izquierdo del mouse para disparar
-        if (Input.GetMouseButtonDown(0)) // 0 es el botón izquierdo del mouse
+        if (Input.GetMouseButtonDown(0))
         {
             shootRpc(firepoint.forward);
         }
@@ -90,13 +94,66 @@ public class SimplePlayerController : NetworkBehaviour
         }
     }
 
+    public void SetData(PlayerData playerData)
+    {
+        accountID.Value = playerData.accountID;
+        health.Value = playerData.health;
+        attack.Value = playerData.attack;
+        transform.position = playerData.position;
+    }
+
+    // Método para recibir daño
+    [ServerRpc(RequireOwnership = false)]
+    public void TakeDamageServerRpc(int damage)
+    {
+        if (!IsServer) return;
+
+        health.Value -= damage;
+        Debug.Log($"Jugador {accountID.Value} recibió {damage} de daño. Vida restante: {health.Value}");
+
+        if (health.Value <= 0)
+        {
+            // El jugador ha muerto, respawnearlo
+            RespawnPlayer();
+        }
+    }
+
+    private void RespawnPlayer()
+    {
+        if (!IsServer) return;
+
+        // Restaurar vida
+        health.Value = maxHealth;
+        
+        // Mover a una posición de respawn aleatoria
+        Vector3 respawnPos = gameManager2.Instance.GetRandomSpawnPosition();
+        transform.position = respawnPos;
+
+        Debug.Log($"Jugador {accountID.Value} ha sido respawneado en {respawnPos}");
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        if (gameManager2.Instance != null && !string.IsNullOrEmpty(accountID.Value.ToString()))
+        {
+            gameManager2.Instance.playerStatesByAccountID[accountID.Value.ToString()] = new PlayerData(
+                accountID.Value.ToString(), 
+                transform.position, 
+                health.Value, 
+                attack.Value
+            );
+
+            Debug.Log($"me desconecte {NetworkManager.Singleton.LocalClientId} y se guardo la data de {accountID.Value}");
+        }
+    }
+
     private void AimTowardsMouse()
     {
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray, out RaycastHit hitInfo, maxDistance: 300f, layerMask: groundLayer))
         {
             var target = hitInfo.point;
-            target.y = transform.position.y; // Mantiene al jugador derecho, sin inclinarse
+            target.y = transform.position.y;
             
             Vector3 direction = target - transform.position;
             Quaternion rotation = Quaternion.LookRotation(direction);
@@ -148,6 +205,13 @@ public class SimplePlayerController : NetworkBehaviour
     {
         GameObject proj = Instantiate(projectilPrefab, firepoint.position, Quaternion.LookRotation(direction));
         proj.GetComponent<NetworkObject>().Spawn(true);
+
+        // Establecer quién disparó el proyectil para evitar auto-daño
+        Projectil projectilScript = proj.GetComponent<Projectil>();
+        if (projectilScript != null)
+        {
+            projectilScript.SetShooter(OwnerClientId);
+        }
 
         proj.GetComponent<Rigidbody>().AddForce(direction * 5, ForceMode.Impulse);
     }

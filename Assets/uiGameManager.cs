@@ -15,7 +15,7 @@ public class uiGameManager : NetworkBehaviour
         ConnectButton.onClick.AddListener(OnSubmitName);
         loginPanel.SetActive(false);
 
-        gameManager2.Instance.OnConnection += () =>
+        gameManager2.Instance.OnClientConnected += () =>
         {
             loginPanel.SetActive(true);
             inputField.text = "";
@@ -23,6 +23,7 @@ public class uiGameManager : NetworkBehaviour
             inputField.interactable = true;
         };
     }
+    
     public void OnSubmitName()
     {
         string accountID = inputField.text;

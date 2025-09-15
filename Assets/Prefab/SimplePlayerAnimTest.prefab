@@ -635,6 +635,45 @@ MonoBehaviour:
   PlayerID:
     m_InternalValue: 0
   PlayerID2: 0
+  accountID:
+    m_InternalValue:
+      utf8LengthInBytes: 0
+      bytes:
+        offset0000:
+          byte0000: 0
+          byte0001: 0
+          byte0002: 0
+          byte0003: 0
+          byte0004: 0
+          byte0005: 0
+          byte0006: 0
+          byte0007: 0
+          byte0008: 0
+          byte0009: 0
+          byte0010: 0
+          byte0011: 0
+          byte0012: 0
+          byte0013: 0
+          byte0014: 0
+          byte0015: 0
+        byte0016: 0
+        byte0017: 0
+        byte0018: 0
+        byte0019: 0
+        byte0020: 0
+        byte0021: 0
+        byte0022: 0
+        byte0023: 0
+        byte0024: 0
+        byte0025: 0
+        byte0026: 0
+        byte0027: 0
+        byte0028: 0
+        byte0029: 0
+  health:
+    m_InternalValue: 0
+  attack:
+    m_InternalValue: 0
   projectilPrefab: {fileID: 1856415030087017195, guid: e0f47a50a39dfb645891face79b2d806, type: 3}
   speed: 5
   groundLayer:
@@ -642,6 +681,8 @@ MonoBehaviour:
     m_Bits: 64
   jumpForce: 5
   firepoint: {fileID: 1672175781209954569}
+  aimLength: 10
+  turnSpeed: 15
 --- !u!114 &8600981392437182536
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1424,7 +1465,7 @@ Transform:
   m_GameObject: {fileID: 4032928382559734116}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.3, z: 0.176}
+  m_LocalPosition: {x: 0, y: 1.3, z: 0.223}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
