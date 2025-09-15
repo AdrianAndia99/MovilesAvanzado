@@ -3,7 +3,9 @@ using UnityEngine;
 
 public class Projectil : NetworkBehaviour
 {
-    public int damage = 34;
+    public int baseDamage = 1;
+    // damage that will actually be applied (calculated on server)
+    private int damage = 1;
     private ulong shooterClientId; // ID del jugador que disparó
 
     void Start()
@@ -18,6 +20,54 @@ public class Projectil : NetworkBehaviour
     public void SetShooter(ulong clientId)
     {
         shooterClientId = clientId;
+        // If running on the server, initialize directly. If running on client, request server initialization.
+        if (IsServer)
+        {
+            // Default to baseDamage
+            damage = baseDamage;
+            if (NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out var client))
+            {
+                var playerObj = client.PlayerObject;
+                if (playerObj != null)
+                {
+                    var controller = playerObj.GetComponent<SimplePlayerController>();
+                    if (controller != null)
+                    {
+                        damage = baseDamage + controller.attack.Value;
+                    }
+                }
+            }
+        }
+        else
+        {
+            // Request the server to initialize this projectile (calculate damage using shooter's attack)
+            InitializeOnServerServerRpc(clientId);
+        }
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void InitializeOnServerServerRpc(ulong clientId)
+    {
+        if (!IsServer) return;
+        shooterClientId = clientId;
+
+        // Default to baseDamage
+        damage = baseDamage;
+
+        // Try to read the shooter's attack from their player object
+        if (NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out var client))
+        {
+            var playerObj = client.PlayerObject;
+            if (playerObj != null)
+            {
+                var controller = playerObj.GetComponent<SimplePlayerController>();
+                if (controller != null)
+                {
+                    // Combine baseDamage with player's attack NetworkVariable
+                    damage = baseDamage + controller.attack.Value;
+                }
+            }
+        }
     }
 
     public void SimpleDespawn()
